@@ -1,0 +1,466 @@
+---
+title: "L05 Annotation & Positioning"
+subtitle: "Data Visualization (STAT 302)" 
+author: "Sherry Chen"
+pagetitle: "L05 Sherry Chen"
+
+format:
+  html:
+    toc: true
+    toc-location: left
+    embed-resources: true
+    code-fold: show
+    link-external-newwindow: true
+    fig-dpi: 300
+
+execute:
+  warning: false
+
+from: markdown+emoji 
+reference-location: margin
+citation-location: margin 
+---
+
+
+## Overview
+
+The goal of this lab is to explore methods for annotating and positioning with `ggplot2` plots. This lab also utilizes `scale_*` to a greater degree which is part of our next reading. In fact, students may find going through/reading chapter [11 Colour scales and legends](https://ggplot2-book.org/scale-colour.html) useful.
+
+## Datasets
+
+We'll be using the `blue_jays.rda`, `titanic.rda`, `Aus_athletes.rda`, and `tech_stocks.rda` datasets.
+
+```{r}
+#| label: load-pkgs-data
+
+# Load package(s)
+library(ggplot2)
+library(ggrepel)
+library(patchwork)
+library(cowplot)
+library(tidyverse)
+# Load data
+load("data/titanic.rda")
+load("data/Aus_athletes.rda")
+load("data/blue_jays.rda")
+load("data/tech_stocks.rda")
+
+```
+
+## Exercises
+
+Complete the following exercises.
+
+## Exercise 1
+
+Using the `blue_jays.rda` dataset, recreate the following graphic as precisely as possible.
+
+*Hints:*
+
+- Transparency is 0.8
+- Point size 2
+- Create a `label_info` dataset that is a subset of original data, just with the 2 birds to be labeled
+- Shift label text horizontally by 0.5
+- See ggplot2 textbook 8.3 building custom annotations 
+- Annotation size is 4
+- Classic theme
+
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: exercise 1 plot 1
+#Location info for annotate
+y_range <- range(blue_jays$Head)
+x_range <- range(blue_jays$Mass)
+caption <- "Head length versus body mass for 123 blue jays"
+# data for labels: geom_text()
+label_info <- blue_jays |> 
+  filter(BirdID %in%
+           c("1142-05914", "702-90567"))
+#build plot
+ggplot(blue_jays,
+       aes(x = Mass,
+           y = Head,
+           color = KnownSex)) +
+geom_point(
+  size = 2,
+  alpha = 0.8,
+  show.legend = FALSE
+  ) +
+  geom_text(
+    data = label_info,
+    mapping = aes(label = KnownSex),
+    show.legend = FALSE,
+    nudge_x = 0.5) +
+  theme_classic() +
+  labs(
+    x = "Body mass (g)",
+    y = "Head length (mm)"
+    ) +
+  annotate(
+    geom = "text", 
+    x = x_range[1],#1st value of the coordinate
+    y = y_range[2], #2nd value of the coordinate
+    label = caption,
+    hjust = 0,
+    vjust = 1)
+  
+
+```
+
+
+:::
+
+## Exercise 2
+
+Using the `tech_stocks` dataset, recreate the following graphics as precisely as possible. Use the column `price_indexed`.
+
+### Plot 1
+
+*Hints:*
+
+- Create a `label_info` dataset that is a subset of original data, just containing the last day's information for each of the 4 stocks
+- serif font
+- Annotation size is 4
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: exercise 2 plot 1
+
+y_rangee2p1 <- range(tech_stocks$price_indexed)
+x_rangee2p1 <- range(tech_stocks$date)
+captione2p1 <- "Stock price over time for four major tech companies"
+
+label_infoe2p1  <- tech_stocks |> 
+  filter(date %in%
+           c("2017-06-02"))
+
+
+ggplot(tech_stocks, aes(x = date, y = price_indexed, color = company)) +
+  geom_line(show.legend = FALSE) + 
+  geom_text(
+    data = label_infoe2p1,
+    mapping = aes(label = company),
+    color = "black",
+    family = "serif") +
+  annotate(
+    geom = "text", 
+    x = x_rangee2p1[1],#1st value of the coordinate
+    y = y_rangee2p1[2], #2nd value of the coordinate
+    label = captione2p1,
+    hjust = 0,
+    vjust = 1,
+    family = "serif",
+    size = 4,
+    show.legend = FALSE) +
+  labs(
+    x = "Date",
+    y = "Stock price, indexed") +
+  theme_minimal()
+
+
+
+```
+
+
+:::
+
+### Plot 2
+
+*Hints:*
+
+- Package `ggrepel`
+  - `box.padding` is 0.6
+  - Minimum segment length is 0 
+  - Horizontal justification is to the right
+  - seed of 9876
+- Annotation size is 4
+- serif font
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: exercise 2 plot 2
+
+y_rangee2p1 <- range(tech_stocks$price_indexed)
+x_rangee2p1 <- range(tech_stocks$date)
+captione2p1 <- "Stock price over time for four major tech companies"
+
+label_infoe2p1  <- tech_stocks |> 
+  filter(date %in%
+           c("2017-06-02"))
+
+
+ggplot(tech_stocks, aes(x = date, y = price_indexed, color = company)) +
+  geom_line(show.legend = FALSE) + 
+  geom_text_repel(
+    data = label_infoe2p1,
+    mapping = aes(label = company),
+    box.padding = 0.6,
+    min.segment.length = 0,
+    seed = 9876,
+    show.legend = FALSE,
+    hjust = 1,
+    color = "black",
+    family = "serif") +
+  annotate(
+    geom = "text", 
+    x = x_rangee2p1[1],#1st value of the coordinate
+    y = y_rangee2p1[2], #2nd value of the coordinate
+    label = captione2p1,
+    hjust = 0,
+    vjust = 1,
+    family = "serif",
+    size = 4,
+    show.legend = FALSE) +
+  labs(
+    x = "Date",
+    y = "Stock price, indexed") +
+  theme_minimal()
+
+
+
+
+
+
+```
+
+
+:::
+
+## Exercise 3
+
+Using the `titanic.rda` dataset, recreate the following graphic as precisely as possible.
+
+*Hints:*
+
+- Create a new variable that uses `died` and `survived` as levels/categories
+- Hex colors: `#D55E00D0`, `#0072B2D0` (no alpha is being used)
+
+::: {.callout-tip icon="false"}
+## Solution
+```{r}
+#| label: exercise 3 plot 1
+# Create the new survival_status variable
+titanic <- titanic %>%
+  mutate(survival_status = factor(ifelse(survived == 1, "survived", "died"), levels = c("died", "survived")))
+
+# Create the plot
+ggplot(titanic, aes(x = sex, fill = sex)) +
+  geom_bar(position = "dodge") +
+  facet_grid(survival_status ~ class) +
+  scale_fill_manual(values = c("female" = "#D55E00D0", "male" = "#0072B2D0")) +
+  labs(y = "count") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+:::
+
+## Exercise 4
+
+Use the `athletes_dat` dataset --- extracted from `Aus_althetes.rda` --- to recreate the following graphic as precisely as possible. **Create the graphic twice**: once using `patchwork` and once using `cowplot`.
+
+```{r}
+#| label: ex-4-data-wrangle
+
+# Get list of sports played by BOTH sexes
+both_sports <- Aus_athletes |>
+  # dataset of columns sex and sport 
+  # only unique observations
+  distinct(sex, sport) |>
+  # see if sport is played by one gender or both
+  count(sport) |>
+  # only want sports played by BOTH sexes
+  filter(n == 2) |>
+  # get list of sports
+  pull(sport)
+
+# Process data
+athletes_dat <- Aus_athletes |>
+  # only keep sports played by BOTH sexes
+  filter(sport %in% both_sports) |>
+  # rename track (400m) and track (sprint) to be track
+  # case_when will be very useful with shiny apps
+  mutate(
+    sport = case_when(
+      sport == "track (400m)" ~ "track",
+      sport == "track (sprint)" ~ "track",
+      TRUE ~ sport
+      )
+    )
+```
+
+*Hints:*
+
+- Build each plot separately
+- Bar plot: lower limit 0, upper limit 95
+- Bar plot: shift bar labels by 5 units and top justify 
+- Bar plot: label size is 5
+- Bar plot: `#D55E00D0` & `#0072B2D0` --- no `alpha`
+- Scatterplot: `#D55E00D0` & `#0072B2D0` --- no `alpha`
+- Scatterplot: filled circle with "white" outline; size is 3
+- Scatterplot: `rcc` is red blood cell count; `wcc` is white blood cell count
+- Boxplot: outline `#D55E00` and `#0072B2`; shading `#D55E0040` and `#0072B240`
+- Boxplot: should be made narrower; 0.5
+- Boxplot: Legend is in top-right corner of bottom plot
+- Boxplot: Space out labels `c("female    ", "male")`
+- Boxplot: Legend shading matches hex values for top two plots
+
+### Using `patchwork`
+
+::: {.callout-tip icon="false"}
+## Solution
+```{r}
+#| label: ex-4-patchwork
+
+#label info(bar plot)
+label_info <- athletes_dat |>  count(sex)
+
+#bar graph 
+plot_1_bar_plot <- ggplot(data = athletes_dat, mapping = aes(sex, fill = sex)) +
+  geom_bar() + 
+  geom_text(
+    data = label_info,
+    mapping = aes(y = n, label = n),
+    size = 5,
+    vjust = 1,
+    nudge_y = -5
+  ) +
+  scale_fill_manual(
+    values = c("#D55E00D0","#0072B2D0"),
+    guide = "none"
+    ) +
+  scale_x_discrete(name = NULL, labels = c("female", "male")) + 
+  scale_y_continuous(name = "number",
+                     limits = c(0,95), 
+                     expand = c(0,0)
+                     ) +
+  theme_minimal()
+
+#scatterplot
+
+plot_2_scatter <- ggplot(athletes_dat, aes(rcc, wcc, fill = sex)) +
+  geom_point(
+    shape = 21, 
+    color = "white",
+    size = 3) + 
+  scale_fill_manual(
+    values = c("#D55E00D0","#0072B2D0"),
+    guide = "none"
+    ) +
+  theme_minimal() +
+  labs( 
+    x = "RBC count", 
+    y = "WBC count")
+
+
+#boxplots 
+plot_3_boxplot <- ggplot(
+  athletes_dat,
+  aes(sport, pcBfat, fill = sex, color = sex)
+  ) +
+  geom_boxplot(width = 0.5) +
+  scale_color_manual(
+    values = c("#D55E00D0","#0072B2D0"),
+    guide = "none"
+    ) + 
+  scale_fill_manual(
+    name = NULL,
+    values = c("#D55E0040","#0072B240"),
+    labels = c("female    ", "male")
+    ) +
+  theme_minimal() +
+  theme(
+    legend.justification = c(1,1),
+    legend.position = c(1,1),
+    legend.direction = "horizontal"
+  ) +
+  labs( 
+    x = NULL, 
+    y = "% body fat"
+    ) +
+  guides(
+    fill = guide_legend(
+      override.aes = list(
+        color = NA,
+        fill = c("#D55E00D0","#0072B2D0")
+        )
+      )
+    )
+
+#  building graphic with patchwork
+(plot_1_bar_plot + plot_2_scatter) / plot_3_boxplot
+
+```
+
+:::
+
+### Using `cowplot`
+
+Use [`cowplot::plot_grid()`](https://wilkelab.org/cowplot/articles/plot_grid.html) to combine them.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-4-cowplot
+
+#  building graphic with cowplot
+top_row <- plot_grid(plot_1_bar_plot, plot_2_scatter, align = "h")
+plot_grid(top_row, plot_3_boxplot, ncol = 1)
+```
+
+
+:::
+
+## Exercise 5
+
+Create the following graphic using `patchwork`.
+
+*Hints:*
+
+- Use plots created in Exercise 4
+- inset theme is classic
+  - Useful values: 0, 0.45, 0.75, 1
+- plot annotation `"A"`
+
+::: {.callout-tip icon="false"}
+## Solution
+```{r}
+#| label: exercise 5 patchwork inset plot
+
+#bar graph 
+plot_12_bar_plot <- ggplot(data = athletes_dat, mapping = aes(sex, fill = sex)) +
+  geom_bar() + 
+  geom_text(
+    data = label_info,
+    mapping = aes(y = n, label = n),
+    size = 5,
+    vjust = 1,
+    nudge_y = -5
+  ) +
+  scale_fill_manual(
+    values = c("#D55E00D0","#0072B2D0"),
+    guide = "none"
+    ) +
+  scale_x_discrete(name = NULL, labels = c("female", "male")) + 
+  scale_y_continuous(name = "number",
+                     limits = c(0,95), 
+                     expand = c(0,0)
+                     ) +
+  theme_classic()
+combined_plot <- plot_2_scatter +
+  inset_element(plot_12_bar_plot, 0.75, 0, 1, .45) + plot_annotation(tag_levels = 'A')
+
+combined_plot
+
+```
+
+
+:::

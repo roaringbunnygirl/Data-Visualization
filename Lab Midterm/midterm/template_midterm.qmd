@@ -1,0 +1,509 @@
+---
+title: "Midterm"
+subtitle: "Data Visualization (STAT 302)"
+author: "Sherry Chen"
+pagetitle: "Midterm Sherry Chen"
+date: today
+
+format:
+  html:
+    toc: true
+    toc-location: left
+    embed-resources: true
+    link-external-newwindow: true
+    code-fold: false
+    fig-dpi: 300
+
+execute:
+  warning: false
+
+from: markdown+emoji 
+reference-location: margin
+citation-location: margin
+---
+
+## Overview
+
+The midterm attempts to bring together everything you have learned to date. You'll be asked to replicate a series of graphics to demonstrate your skills and provide short descriptions/explanations regarding issues and concepts in `ggplot2`.
+
+You are free to use any resource at your disposal such as notes, past labs, the internet, fellow students, instructor, TA, etc. However, do not simply copy and paste solutions. This is a chance for you to assess how much you have learned and determine if you are developing practical data visualization skills and knowledge.
+
+## Datasets
+
+The datasets used for this dataset are `stephen_curry_shotdata_2023_24.txt`, `ga_election_data.csv`, and `ga_map.rda`. We will also need the `nbahalfcourt.jpg` image.
+
+Below you can find a short description of the variables contained in `stephen_curry_shotdata_2023_24.txt`:
+
+-   `GAME_ID` - Unique ID for each game during the season
+-   `HOME` - Indicates if game is `"Home"` or `"Away"`
+-   `PLAYER_ID` - Unique player ID
+-   `PLAYER_NAME` - Player's name
+-   `TEAM_ID` - Unique team ID
+-   `TEAM_NAME` - Team name\
+-   `PERIOD` - Quarter or period of the game
+-   `MINUTES_REMAINING` - Minutes remaining in quarter/period
+-   `SECONDS_REMAINING` - Seconds remaining in quarter/period
+-   `EVENT_TYPE` - `Missed Shot` or `Made Shot`
+-   `SHOT_DISTANCE` - Shot distance in feet
+-   `LOC_X` - X location of shot attempt according to tracking system
+-   `LOC_Y` - Y location of shot attempt according to tracking system
+
+The `ga_election_data.csv` dataset contains the state of Georgia's county level results for the 2020 US presidential election. Here is a short description of the variables it contains:
+
+-   `County` - name of county in Georgia
+-   `Candidate` - name of candidate on the ballot,
+-   `Election Day Votes` - number of votes cast on election day for a candidate within a county
+-   `Absentee by Mail Votes` - number of votes cast absentee by mail, pre-election day, for a candidate within a county
+-   `Advanced Voting Votes` - number of votes cast in-person, pre-election day, for a candidate within a county
+-   `Provisional Votes` - number of votes cast on election day for a candidate within a county needing voter eligibility verification
+-   `Total Votes` - total number of votes for a candidate within a county
+
+We have also included the map data for Georgia (`ga_map.rda`) which was retrieved using `tigris::counties()`.
+
+```{r}
+#| label: load-pkgs-data
+
+# load package(s)
+library(tidyverse)
+library(patchwork)
+library(ggthemes)
+library(sf)
+
+# load steph curry data
+steph_curry <- read_delim(
+  file = "data/stephen_curry_shotdata_2023_24.txt",
+  delim = "|"
+) |> 
+  janitor::clean_names()
+
+# load ga election & map data
+ga_data <- read_csv("data/ga_election_data.csv") |> 
+  janitor::clean_names()
+
+# load map data
+load("data/ga_map.rda")
+
+```
+
+## Exercise 1
+
+Using the `stephen_curry_shotdata_2023_24.txt` dataset replicate, as close as possible, the graphics below (2 required, 1 optional/bonus). After replicating the graphics provide a summary of what the graphics indicate about Stephen Curry's shot selection such as distance from hoop, shot make/miss rate, how do makes and misses compare across distance and game time (i.e. across quarters/periods).
+
+### Plot 1
+
+*Hints:*
+
+-   Figure width 6 inches and height 4 inches, which is taken care of in code chunk yaml with `fig-width` and `fig-height`
+-   Use `minimal` theme and adjust from there
+-   Useful hex colors: `"#1D428A"` and `"#FFC72C80"`
+-   While the plot needs to be **very close** to the one shown it does not need to be **exact** in terms of values. If you want to make it exact here are some useful values used, sometimes repeatedly, to make the plot: 12, 14, & 16
+
+::: {.callout-tip icon=false}
+## Solution
+
+```{r}
+#| label: ex-1-plot-1
+#| fig-width: 6
+#| fig-height: 4
+
+
+# data prep
+steph_curry <- steph_curry |>
+  mutate(
+    period = if_else(period > 5, 5, period),
+    period = factor(
+      period,
+      levels = c(1, 2, 3, 4, 5),
+      labels = c("Q1", "Q2", "Q3", "Q4", "OTs")
+    )
+  ) |> 
+  filter(shot_distance < 47)
+```
+
+```{r}
+#| label: box plot ex-1-plot-1-2
+#| fig-width: 6
+#| fig-height: 4
+
+
+ggplot(steph_curry, aes(x = period, y = shot_distance)) +
+  geom_boxplot(fill = "#FFC72C80", color = "#1D428A", varwidth = TRUE) +
+               #width = ifelse(period == "OTs", 0.3, 0.7)) +
+  facet_wrap(~event_type) + 
+  #scale_x_discrete(expand = c(0,0)) +
+  scale_y_continuous(labels = scales::label_number(accuracy = 1, suffix = "ft")) +
+  labs(x = "Quarter/Period", y = NULL) + 
+  theme_minimal() +
+   theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_blank(), 
+        #panel.spacing = unit(2, "lines"),
+        strip.text = element_text(
+          size = 14,
+          face = "bold"),
+        axis.title.x = element_text(
+          size = 12,
+          face = "bold")
+        ) 
+
+
+
+
+
+#   theme(
+#     axis.title.x = element_text(
+#       size = 12
+#     )
+#   )
+
+
+
+```
+
+:::
+
+### Plot 2
+
+*Hints:*
+
+-   Figure width 6 inches and height 4 inches, which is taken care of in code chunk yaml with `fig-width` and `fig-height`
+-   Use `minimal` theme and adjust from there
+-   Useful hex colors: `"#5D3A9B"` and `"#E66100"`
+-   No padding on vertical axis
+-   Transparency is being used
+-   `annotate()` is used to add labels
+-   While the plot needs to be **very close** to the one shown it does not need to be **exact** in terms of values. If you want to make it exact here are some useful values used, sometimes repeatedly, to make the plot: 0, 0.035, 0.081, 0.09, 0.25, 4.5, 12, 14, 16, 27.5
+
+::: {.callout-tip icon=false}
+## Solution
+
+```{r}
+#| label: box plot ex-1-plot-2
+#| fig-width: 6
+#| fig-height: 4
+
+
+# Define custom colors for event_type
+fill_colors <- c("Missed Shot" = "#E66100", "Made Shot" = "#5D3A9B")
+
+ggplot(steph_curry, aes(x = shot_distance)) +
+  # geom_density(data = subset(steph_curry, event_type == "Missed Shot"),
+  #              aes(fill = event_type, color = event_type, linetype = event_type),
+  #              alpha = .25, linetype = "dashed") +
+  geom_density(mapping = aes(fill = event_type, color = event_type, linetype = event_type), alpha = 0.2) +
+               
+  scale_fill_manual(values = fill_colors) +
+  scale_color_manual(values = fill_colors) +
+  scale_x_continuous(expand = c(0, 0), labels = scales::label_number(accuracy = 1, suffix = "ft")) +
+  scale_y_continuous(labels = NULL) +
+  annotate(
+    geom = "text", 
+    x = 27.5, y = 0.081,  # Adjust the x and y positions to fit your data
+    label = "Missed Shots",
+    hjust = 0,
+    vjust = 0,
+    size = 3.8,  # Adjust the size as needed
+    color = "#E66100"  # Match the color to the fill
+  ) +
+  annotate(
+    geom = "text", 
+    x = 7.6, y = 0.035,  # Adjust these values as needed
+    label = "Made Shots",
+    hjust = 0.5,  # Center the text horizontally
+    vjust = -0.5,  # Position the text just above the curve
+    size = 3.8, 
+    color = "#5D3A9B"
+  ) +
+  theme_minimal() +
+  labs(x = NULL, y = NULL, title = "Stephen Curry", subtitle = "Shot Densities(2023-2024)") +
+  theme(
+    legend.position = "none",
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    axis.text.x = element_text(size = 14),
+    plot.title = element_text(hjust = 0, vjust = 1, face = "bold", size = 16),
+    plot.subtitle = element_text(hjust = 0, vjust = 1, size = 16)
+  )
+
+```
+
+
+:::
+
+### Plot 3 --- Optional/Bonus
+
+*Hints:*
+
+-   Figure width 7 inches and height 7 inches, which is taken care of in code chunk yaml with `fig-width` and `fig-height`
+-   Colors used: `"grey"`, `"red"`, `"orange"` `"yellow"` (don't have to use `"orange"`, you can get away with using only `"red"` and `"yellow"`)
+-   To set `15+` as the highest value, you need to set the limits in the appropriate scale while also setting the `na.value` to the top color
+-   While the plot needs to be **very close** to the one shown it does not need to be **exact** in terms of values. If you want to make it exact here are some useful values used, sometimes repeatedly, to make the plot: 0, 0.7, 5, 12, 14, 15, 16, 20
+
+::: {.callout-tip icon=false}
+## Solution
+
+```{r}
+#| label: ex-1-plot-3
+#| fig-width: 7
+#| fig-height: 7
+#| echo: true
+
+
+
+# importing image of NBA half court
+court <- grid::rasterGrob(
+  jpeg::readJPEG(
+    source = "data/nbahalfcourt.jpg"),
+  width = unit(1, "npc"), 
+  height = unit(1, "npc")
+)
+
+
+
+# Create the plot
+ggplot(steph_curry, aes(x = loc_x, y = loc_y)) +
+  annotation_custom(
+    grob = court,
+    xmin = -25, xmax = 25,
+    ymin = 0, ymax = 46
+  ) +
+   geom_hex(bins = 20, color = "grey", alpha = .7) + 
+  scale_fill_gradientn(
+    colors = c("yellow", "orange", "red"),
+    na.value = "red",
+    limits = c(0, 15), 
+    breaks = c(0, 5, 10, 15),
+    name = "Shot Frequency") +
+  labs(x = NULL, y = NULL, title = "Stephen Curry", subtitle = "Shot Chart (2023-2024)") +
+  coord_fixed(expand = FALSE) +
+  xlim(-25, 25) +
+  ylim(0, 46) + 
+  theme(
+    plot.title = element_text(hjust = 0, vjust = 1, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0, vjust = 1, size = 14),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.title.x = element_blank(),
+    panel.background = element_blank(),
+    line = element_blank()
+  ) 
+  
+  
+  
+  
+
+  
+```
+
+:::
+
+### Summary
+
+Provide a summary of what the graphics above indicate about Stephen Curry's shot selection such as distance from hoop, shot make/miss rate, how do makes and misses compare across distance and game time (i.e. across quarters/periods).
+
+::: {.callout-tip icon=false}
+## Solution
+
+For Stephen Curry's box-plot, in the first quarter, his median shot distance is around 20ft and the shot range is between 10ft-25ft while he unexpectedly made some shots at around 35 feet. His median in missed shot is around 20 ft, but his shot range is higher along with a few outliers for short and long distances. For the second, third, and fourth quarter, the made shots were very similar to quarter one, however with a wide range. He seemed to have more variability in missing his shots in Q3, but Q2 and Q4 were very similar with the same median. 
+
+For Stephen Curry's density plot, there is a noticeable peak from 0-10ft, indicating a higher frequency of made shots in this range. These are likely layups or close-range shots.
+The density increases significantly, peaking around the 25-30ft range, indicating that a substantial portion of made shots are from long distances, including three-pointers, but not many shots were made from 10-20ft and 30-40ft. Now looking at the missed shots, from 0-10ft the density is lower compared to made shots, indicating fewer missed shots at close range. The density peaks slightly higher than the made shots, suggesting a higher frequency of missed shots from long-range attempts.
+
+Overall, Stephen Curry’s shot distribution shows a strong preference and success rate for long-range shots, particularly around the three-point line. While he occasionally makes very long shots, his most frequent and successful attempts are within the 25-30ft range. Close-range shots also show a high success rate, whereas mid-range shots are less frequent for both makes and misses.
+
+:::
+
+## Exercise 2
+
+Using the `ga_election_data.csv` dataset in conjunction with mapping data `ga_map.rda` replicate, as close as possible, the graphic below. Note the graphic is comprised of two plots displayed side-by-side. The plots both use the same shading scheme (i.e. scale limits and fill options).
+
+::: {.callout-note}
+
+## Background Information
+
+Holding the 2020 US Presidential election during the COVID-19 pandemic was a massive logistical undertaking. Additional voter engagement was extremely historically high. Voting operations, headed by states, ran very smoothly and encountered few COVID-19 related issues. The state of Georgia did a particularly good job at this by encouraging their residents to use early voting. About 75% of the vote in a typical county voted early! Statewide, about 80% or 4 in every 5 voters in Georgia voted early.
+
+While it is clear that early voting was the preferred option for Georgia voters, we want to investigate whether or not voters for one candidate/party utilized early voting more than the other --- we are focusing on the two major candidates/parties. We created the graphic below to explore the relationship of voting modality and voter preference, which you are tasked with recreating.
+
+:::
+
+*Hints:*
+
+-   Figure width 7 inches and height 7 inches, which is taken care of in code chunk yaml with `fig-width` and `fig-height`
+-   Make two plots, then arrange plots accordingly using `patchwork` package
+-   `patchwork::plot_annotation()` will be useful for adding graphic title and caption; you'll also set the theme options for the graphic title and caption (think font size and face) --- **code has been provided**
+-   `ggthemes::theme_map()` was used as the base theme for the plots
+-   `scale_*_gradient2()` will be helpful
+-   Useful hex colors: `"#5D3A9B"` and `"#1AFF1A"`
+-   While the plot needs to be **very close** to the one shown it does not need to be **exact** in terms of values. If you want to make it exact here are some useful values used, sometimes repeatedly, to make the plot: 0.5, 0.75, 1, 10, 12, 14, 24
+
+### Plot
+
+::: {.callout-tip icon=false}
+## Solution
+
+```{r}
+#| label: ex-2-graphic
+#| fig-height: 7
+#| fig-width: 7
+
+
+# data
+ga_graph <- ga_data |> 
+  mutate(
+    prop_pre_eday = (absentee_by_mail_votes + advanced_voting_votes) / total_votes
+  ) |> 
+  select(-contains("_vote")) 
+
+# biden map data
+biden_map_data <- ga_map |> 
+  left_join(
+    ga_graph |> 
+      filter(candidate == "Joseph R. Biden"),
+    by = c("name" ="county")
+  )
+
+
+# trump map data
+trump_map_data <- ga_map |> 
+  left_join(
+    ga_graph |> 
+      filter(candidate == "Donald J. Trump"),
+    by = c("name" ="county")
+  )
+
+# biden plot
+
+midpoint <- mean(biden_map_data$prop_pre_eday, na.rm = TRUE)
+
+biden_plot <- ggplot(data = biden_map_data) +
+  geom_sf(aes(fill = prop_pre_eday), color = "black") +
+  scale_fill_gradientn(
+    colors = c("#1AFF1A", "white", "#5D3A9B"),
+    values = scales::rescale(c(0.5, 0.75, 1)),
+    limits = c(.5, 1),
+    breaks = c(0.5, 0.75, 1),
+    labels = c("50%", "75%", "100%"),
+    oob = scales::squish
+  ) +
+  labs(
+    title = "Joseph R. Biden",
+    subtitle = "Democratic Nominee",
+    fill = "Proportion Pre-Election Day"
+  ) +
+  theme_void() +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(face = "bold", size = 14),
+    plot.subtitle = element_text(size = 12)
+  )
+
+# trump plot
+
+midpoint2 <- mean(trump_map_data$prop_pre_eday, na.rm = TRUE)
+
+trump_plot <- ggplot(data = trump_map_data) +
+  geom_sf(aes(fill = prop_pre_eday), color = "black") +
+  scale_fill_gradientn(
+    colors = c("#1AFF1A", "white", "#5D3A9B"),
+    values = scales::rescale(c(0.5, 0.75, 1)),
+    limits = c(.5, 1),
+    breaks = c(0.5, 0.75, 1),
+    labels = c("50%", "75%", "100%"),
+    oob = scales::squish
+  ) +
+  labs(
+    title = "Donald J. Trump",
+    subtitle = "Republican Nominee",
+    fill = "Proportion Pre-Election Day"
+  ) +
+  theme_void() +
+  theme(
+    legend.title = element_blank(),
+    plot.title = element_text(face = "bold", size = 14),
+    plot.subtitle = element_text(size = 12)
+  )
+
+
+
+
+
+
+# code for final plot
+biden_plot +
+  trump_plot +
+  plot_annotation(
+    title = "Percentage of votes from early voting",
+    caption = "Georgia: 2020 US Presidential Election Results",
+    theme = theme(
+      plot.title = element_text(size = 24, face = "bold"),
+      plot.caption = element_text(size = 10)
+      )
+    )
+
+
+
+
+
+```
+
+:::
+
+### Summary
+
+Provide a summary of how the two maps relate to one another. That is, what insight can we learn from the graphic.
+
+::: {.callout-tip icon=false}
+## Solution
+
+
+
+:::
+
+## Exercise 3
+
+### Question 1
+
+Name and briefly describe the core concept/idea that `ggplot2` package uses to build graphics.
+
+::: {.callout-tip icon=false}
+## Solution
+
+YOUR ANSWER
+
+:::
+
+### Question 2
+
+Explain the difference between using `geom_bar()` or `geom_col()` to make a bar plot.
+
+::: {.callout-tip icon=false}
+## Solution
+
+YOUR ANSWER
+
+:::
+
+### Question 3
+
+Explain aesthetic mappings and their purpose. 
+
+::: {.callout-tip icon=false}
+## Solution
+
+YOUR ANSWER
+
+:::
+
+### Question 4
+
+What 2 core things do scales provide/control in ggplot2?
+
+::: {.callout-tip icon=false}
+## Solution
+
+YOUR ANSWER
+
+:::
